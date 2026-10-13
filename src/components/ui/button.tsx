@@ -3,21 +3,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-buttons border border-transparent bg-clip-padding text-body-sm font-semibold whitespace-nowrap transition-shadow duration-300 outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-buttons border border-transparent bg-clip-padding text-body-sm font-semibold whitespace-nowrap transition-all duration-300 outline-none select-none hover:-translate-y-0.5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "border-crimson-line bg-dark-mulberry text-frost-white shadow-none hover:shadow-plasma",
+          "border-transparent bg-coral text-paper shadow-plasma hover:bg-ink",
         outline:
-          "border-crimson-line bg-obsidian-void text-frost-white hover:shadow-plasma-ambient",
+          "border-fold bg-paper text-ink hover:shadow-plasma",
         secondary:
-          "border-hairline bg-secondary text-secondary-foreground hover:shadow-plasma-ambient",
+          "border-fold bg-sage-paper text-ink hover:shadow-plasma",
         ghost:
-          "text-frost-white hover:bg-plasma-wash hover:text-frost-white",
+          "text-ink hover:bg-coral/10",
         destructive:
-          "border-crimson-line bg-plasma-wash text-plasma-pink hover:shadow-plasma",
-        link: "text-plasma-pink underline-offset-4 hover:underline",
+          "border-fold bg-coral/15 text-coral hover:shadow-plasma",
+        link: "text-coral underline-offset-4 hover:underline",
       },
       size: {
         default: "h-auto gap-2 px-6 py-[14px]",

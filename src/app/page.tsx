@@ -6,12 +6,18 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { HeroSearch } from "@/components/hero-search";
 import { JobFeed } from "@/components/job-feed";
+import {
+  ClosingBand,
+  FeatureBand,
+  HeroBand,
+  PaperFooter,
+  PricingBand,
+  TestimonialBand,
+} from "@/components/landing-sections";
 import { MatchSheet } from "@/components/match-sheet";
 import { PaywallModal } from "@/components/paywall-modal";
 import { ResumePanel } from "@/components/resume-panel";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { WhyOpen } from "@/components/why-open";
 import { useMotionVariants } from "@/lib/motion";
 import {
   DEMO_KEY,
@@ -236,20 +242,25 @@ export default function Page() {
       : `${scansLeft} ${scansLeft === 1 ? "scan" : "scans"} left`;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 pb-16 pt-2">
-      <motion.div variants={motionVars.fadeUp} {...motionVars.enter}>
-        <SiteHeader
-          quota={quota}
-          pro={pro}
-          demo={demo}
-          upgrading={upgrading}
-          onUpgrade={() => void upgrade()}
-          onDemo={unlockDemo}
-          onEndDemo={endDemo}
-        />
-      </motion.div>
-
-      <motion.div variants={motionVars.fadeUp} {...motionVars.enter}>
+    <main className="flex w-full flex-col">
+      <SiteHeader
+        quota={quota}
+        pro={pro}
+        demo={demo}
+        upgrading={upgrading}
+        onUpgrade={() => void upgrade()}
+        onDemo={unlockDemo}
+        onEndDemo={endDemo}
+      />
+      <HeroBand
+        onScout={() => document.getElementById("scout")?.scrollIntoView({ behavior: "smooth" })}
+        onDemo={unlockDemo}
+      />
+      <motion.div
+        className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 py-12"
+        variants={motionVars.fadeUp}
+        {...motionVars.enter}
+      >
         <HeroSearch
           keyword={keyword}
           location={location}
@@ -260,9 +271,6 @@ export default function Page() {
           onMode={setMode}
           onSearch={() => void searchJobs()}
         />
-      </motion.div>
-
-      <motion.div variants={motionVars.fadeUp} {...motionVars.enter}>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="order-2 lg:order-1">
             <JobFeed
@@ -274,7 +282,7 @@ export default function Page() {
               onScan={(job) => void scan(job)}
             />
           </div>
-          <div className="order-1 lg:sticky lg:top-4 lg:order-2">
+          <div className="order-1 lg:sticky lg:top-24 lg:order-2">
             <ResumePanel
               resume={resume}
               jobsReady={jobs.length > 0}
@@ -292,14 +300,15 @@ export default function Page() {
           </div>
         </div>
       </motion.div>
-
-      <motion.div variants={motionVars.fadeUp} {...motionVars.section}>
-        <WhyOpen />
-      </motion.div>
-
-      <motion.div variants={motionVars.fadeUp} {...motionVars.section}>
-        <SiteFooter />
-      </motion.div>
+      <FeatureBand />
+      <TestimonialBand />
+      <PricingBand
+        upgrading={upgrading}
+        onUpgrade={() => void upgrade()}
+        onDemo={unlockDemo}
+      />
+      <ClosingBand onDemo={unlockDemo} />
+      <PaperFooter />
 
       <MatchSheet
         open={sheetOpen}

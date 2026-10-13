@@ -40,14 +40,11 @@ export function HeroSearch({
   onSearch: () => void;
 }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section id="scout" className="flex scroll-mt-24 flex-col gap-4">
       <div>
-        <h1 className="text-heading font-bold text-frost-white">
-          Scout the role. Keep the resume.
-        </h1>
-        <p className="mt-2 max-w-2xl text-body-sm text-frost-muted">
-          Search remote jobs, paste your resume, and score the match. Private
-          mode stays on your machine. Hosted mode calls an open-weight endpoint.
+        <h2 className="text-subheading font-bold text-ink">Search the fold</h2>
+        <p className="mt-2 max-w-2xl text-body-sm text-steel">
+          Pick a model, type a keyword, then paste your resume. The first matching role scans on its own.
         </p>
       </div>
 

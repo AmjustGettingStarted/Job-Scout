@@ -1,34 +1,35 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Inter, Inter_Tight } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
-  variable: "--font-inter",
-});
-
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-inter-tight",
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
-  title: "GhostScout",
+  title: "GhostScout — Fold the search. Keep the resume.",
   description:
-    "Match your resume to remote jobs with an open-weight model you can run yourself.",
+    "Search remote jobs, paste your resume, and score the match on an open model you can run yourself.",
+  openGraph: {
+    title: "GhostScout",
+    description:
+      "Search remote jobs and score your resume without sending it to a closed vendor.",
+    type: "website",
+    locale: "en_US",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={cn("dark min-h-full antialiased", inter.variable, interTight.variable)}
+      className={cn("min-h-full antialiased", poppins.variable)}
     >
       <body className="flex min-h-full flex-col font-sans">
         <SmoothScroll>
