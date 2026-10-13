@@ -1,7 +1,12 @@
+import { load } from "cheerio";
+import { findPlace, placeTerms } from "@/lib/places";
 import { stripHtml } from "@/lib/strip-html";
 import type { Job } from "@/lib/types";
 
 const TTL_MS = 10 * 60 * 1000;
+const RESULT_LIMIT = 72;
+const HIMALAYAS_PAGES = 4;
+const LINKEDIN_PAGES = 3;
 
 const STOP = new Set([
   "a",
@@ -95,6 +100,7 @@ type Cache = { at: number; jobs: Job[] };
 
 let catalog: Cache | null = null;
 let loading: Promise<Job[]> | null = null;
+const queryCache = new Map<string, Cache>();
 
 export async function loadCatalog(): Promise<Job[]> {
   if (catalog && Date.now() - catalog.at < TTL_MS) return catalog.jobs;
@@ -111,9 +117,22 @@ export async function loadCatalog(): Promise<Job[]> {
   return loading;
 }
 
+export async function searchJobs(q: string, location: string): Promise<Job[]> {
+  const [catalogResult, queryResult] = await Promise.allSettled([
+    loadCatalog(),
+    loadQueryFeeds(q, location),
+  ]);
+  const catalogJobs = catalogResult.status === "fulfilled" ? catalogResult.value : [];
+  const queryJobs = queryResult.status === "fulfilled" ? queryResult.value : [];
+  const jobs = dropSpamTags(dedupe([...queryJobs, ...catalogJobs]));
+  if (jobs.length === 0) throw new Error("No job feeds responded");
+  return rankJobs(jobs, q, location);
+}
+
 export function rankJobs(jobs: Job[], q: string, location: string): Job[] {
   const tokens = queryTokens(q);
   if (tokens.length === 0) return [];
+  const terms = placeTerms(location);
 
   const scored = jobs.flatMap((job) => {
     const title = job.title.toLowerCase();
@@ -139,24 +158,38 @@ export function rankJobs(jobs: Job[], q: string, location: string): Job[] {
     }
 
     if (matched < tokens.length) return [];
-    return [{ job, score, titleHits }];
+    const place = placeRank(job, terms);
+    if (place === 0) return [];
+    return [{ job, score, titleHits, place }];
   });
 
   const titled = scored.filter((row) => row.titleHits === tokens.length);
-  let pool = titled.length > 0 ? titled : scored;
-  const places = placeNeedles(location);
-  if (places) {
-    const located = pool.filter((row) => {
-      const hay = `${row.job.location} ${row.job.title}`.toLowerCase();
-      return places.some((place) => hay.includes(place));
-    });
-    if (located.length > 0) pool = located;
-  }
+  const pool = titled.length > 0 ? titled : scored;
 
   return pool
-    .sort((a, b) => b.score - a.score || a.job.title.localeCompare(b.job.title))
-    .slice(0, 12)
+    .sort(
+      (a, b) =>
+        b.place - a.place || b.score - a.score || a.job.title.localeCompare(b.job.title),
+    )
+    .slice(0, RESULT_LIMIT)
     .map((row) => row.job);
+}
+
+async function loadQueryFeeds(q: string, location: string): Promise<Job[]> {
+  const key = `${q.trim().toLowerCase()}|${location.trim().toLowerCase()}`;
+  const cached = queryCache.get(key);
+  if (cached && Date.now() - cached.at < TTL_MS) return cached.jobs;
+
+  const batches = await Promise.allSettled([
+    fetchHimalayas(q, location),
+    fetchJobicy(q, location),
+    fetchLinkedIn(q, location),
+  ]);
+  const jobs = dedupe(
+    batches.flatMap((batch) => (batch.status === "fulfilled" ? batch.value : [])),
+  );
+  queryCache.set(key, { at: Date.now(), jobs });
+  return jobs;
 }
 
 async function fetchCatalog(): Promise<Job[]> {
@@ -182,16 +215,18 @@ function queryTokens(q: string): string[] {
   return useful.length > 0 ? useful : parts.filter((token) => token.length > 2);
 }
 
-function placeNeedles(location: string): string[] | null {
-  const place = location.trim().toLowerCase();
-  if (!place || place === "remote" || place === "worldwide") return null;
-  if (place === "united states") {
-    return ["united states", "usa", "u.s.", "north america"];
-  }
-  if (place === "europe") {
-    return ["europe", "uk", "united kingdom", "germany", "france", "netherlands"];
-  }
-  return [place];
+function placeRank(job: Job, terms: string[] | null) {
+  if (!terms) return 1;
+  const hay = `${job.location} ${job.title}`.toLowerCase();
+  if (terms.some((term) => includesTerm(hay, term))) return 2;
+  if (/\b(worldwide|anywhere|global)\b/.test(hay) || hay.trim() === "remote") return 1;
+  return 0;
+}
+
+function includesTerm(hay: string, needle: string) {
+  if (/[^a-z0-9\s]/i.test(needle)) return hay.includes(needle);
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(hay);
 }
 
 const TAG_NOISE = new Set([
@@ -359,17 +394,17 @@ async function fetchArbeitnow(): Promise<Job[]> {
 }
 
 async function fetchWwr(): Promise<Job[]> {
-  const feeds = await Promise.allSettled(WWR_FEEDS.map(fetchText));
+  const feeds = await Promise.allSettled(WWR_FEEDS.map((url) => fetchText(url)));
   return feeds.flatMap((feed) =>
     feed.status === "fulfilled" ? parseWwr(feed.value) : [],
   );
 }
 
-async function fetchText(url: string): Promise<string> {
+async function fetchText(url: string, userAgent = "job-scout"): Promise<string> {
   const response = await fetch(url, {
     cache: "no-store",
     signal: AbortSignal.timeout(12000),
-    headers: { "User-Agent": "job-scout" },
+    headers: { "User-Agent": userAgent },
   });
   if (!response.ok) throw new Error(`Feed failed: ${response.status}`);
   return response.text();
@@ -401,6 +436,175 @@ function parseWwr(xml: string): Job[] {
       }),
     ];
   });
+}
+
+async function fetchHimalayas(q: string, location: string): Promise<Job[]> {
+  const place = findPlace(location);
+  const pages = await Promise.allSettled(
+    Array.from({ length: HIMALAYAS_PAGES }, (_, index) => {
+      const params = new URLSearchParams({ q, page: String(index + 1) });
+      if (place?.value === "worldwide") params.set("worldwide", "true");
+      else if (place?.iso) params.set("country", place.iso);
+      return fetchJson<{ jobs?: HimalayaJob[] }>(
+        `https://himalayas.app/jobs/api/search?${params.toString()}`,
+      );
+    }),
+  );
+
+  return pages.flatMap((page) => {
+    if (page.status !== "fulfilled") return [];
+    return (page.value.jobs ?? []).flatMap((job) => {
+      if (!job.title || !job.applicationLink || !job.guid) return [];
+      const countries = (job.locationRestrictions ?? [])
+        .map(restrictionName)
+        .filter(Boolean);
+      return [
+        makeJob({
+          id: `himalayas-${job.guid}`,
+          company: job.companyName || "Unknown company",
+          title: job.title,
+          location: countries.join(", ") || "Remote — Worldwide",
+          salary: formatHimalayaSalary(job),
+          tags: job.categories ?? [],
+          description: job.description || job.excerpt || "",
+          url: job.applicationLink,
+          source: "Himalayas",
+        }),
+      ];
+    });
+  });
+}
+
+type HimalayaJob = {
+  title?: string;
+  excerpt?: string;
+  companyName?: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
+  salaryPeriod?: string;
+  currency?: string | null;
+  locationRestrictions?: unknown[];
+  categories?: string[];
+  description?: string;
+  applicationLink?: string;
+  guid?: string;
+};
+
+function restrictionName(value: unknown) {
+  if (typeof value === "string") return value;
+  if (
+    value &&
+    typeof value === "object" &&
+    "name" in value &&
+    typeof value.name === "string"
+  ) {
+    return value.name;
+  }
+  return "";
+}
+
+function formatHimalayaSalary(job: HimalayaJob) {
+  const low = numberOrZero(job.minSalary ?? undefined);
+  const high = numberOrZero(job.maxSalary ?? undefined);
+  if (!low && !high) return "Not listed";
+  const currency = job.currency ? `${job.currency} ` : "";
+  const period =
+    job.salaryPeriod && job.salaryPeriod !== "annual" ? `/${job.salaryPeriod}` : "";
+  if (low && high && low !== high) return `${currency}${low}–${high}${period}`;
+  return `${currency}${low || high}${period}`;
+}
+
+async function fetchJobicy(q: string, location: string): Promise<Job[]> {
+  const params = new URLSearchParams({ count: "50" });
+  const tag = q.trim().slice(0, 50);
+  if (tag.length >= 3) params.set("tag", tag);
+  const geo = findPlace(location)?.jobicy;
+  if (geo) params.set("geo", geo);
+
+  const payload = await fetchJson<{
+    jobs?: Array<{
+      id?: number | string;
+      url?: string;
+      jobTitle?: string;
+      companyName?: string;
+      jobGeo?: string;
+      jobExcerpt?: string;
+      jobDescription?: string;
+      jobIndustry?: string[];
+    }>;
+  }>(`https://jobicy.com/api/v2/remote-jobs?${params.toString()}`);
+
+  return (payload.jobs ?? []).flatMap((job) => {
+    if (!job.id || !job.url || !job.jobTitle) return [];
+    return [
+      makeJob({
+        id: `jobicy-${job.id}`,
+        company: job.companyName || "Unknown company",
+        title: job.jobTitle,
+        location: job.jobGeo || "Remote",
+        salary: "Not listed",
+        tags: job.jobIndustry ?? [],
+        description: job.jobDescription || job.jobExcerpt || "",
+        url: job.url,
+        source: "Jobicy",
+      }),
+    ];
+  });
+}
+
+async function fetchLinkedIn(q: string, location: string): Promise<Job[]> {
+  const place = findPlace(location);
+  const pages = await Promise.allSettled(
+    Array.from({ length: LINKEDIN_PAGES }, (_, index) => {
+      const params = new URLSearchParams({
+        keywords: q,
+        start: String(index * 10),
+      });
+      if (place?.value === "remote") params.set("f_WT", "2");
+      else if (place && place.value !== "worldwide") params.set("location", place.label);
+      return fetchText(
+        `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?${params.toString()}`,
+        LINKEDIN_AGENT,
+      );
+    }),
+  );
+
+  return pages.flatMap((page) => (page.status === "fulfilled" ? parseLinkedIn(page.value) : []));
+}
+
+const LINKEDIN_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+function parseLinkedIn(html: string): Job[] {
+  const $ = load(html);
+  const jobs: Job[] = [];
+  $("div.base-search-card").each((_, element) => {
+    const card = $(element);
+    const title = card.find("h3").first().text().replace(/\s+/g, " ").trim();
+    const company = card.find("h4").first().text().replace(/\s+/g, " ").trim();
+    const location = card
+      .find(".job-search-card__location")
+      .text()
+      .replace(/\s+/g, " ")
+      .trim();
+    const href = card.find("a.base-card__full-link").attr("href") ?? "";
+    const urn = card.attr("data-entity-urn") ?? href;
+    if (!title || !href) return;
+    jobs.push(
+      makeJob({
+        id: `linkedin-${urn}`,
+        company: company || "Unknown company",
+        title,
+        location: location || "Remote",
+        salary: "Not listed",
+        tags: [],
+        description: `${title} at ${company || "a company"} in ${location || "an unlisted location"}. Listed on LinkedIn.`,
+        url: href,
+        source: "LinkedIn",
+      }),
+    );
+  });
+  return jobs;
 }
 
 function rssTag(block: string, tag: string): string {

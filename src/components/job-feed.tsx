@@ -65,7 +65,7 @@ export function JobFeed({
                 <p className="text-body-sm text-frost-muted">
                   {searched
                     ? "No roles came back for that search. Try a broader keyword."
-                    : "Search a keyword to load remote roles."}
+                    : "Search a keyword to load roles."}
                 </p>
               </CardContent>
             </Card>

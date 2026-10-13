@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  FoldHorizontal,
   Lock,
   Mail,
   ScanSearch,
@@ -107,7 +106,7 @@ export function HeroBand({
 
 export function FeatureBand() {
   return (
-    <section id="features" className="px-5 py-16">
+    <section id="features" className="px-5 py-12">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-8">
         <div className="max-w-xl">
           <h2 className="text-heading font-bold text-ink">Cut on the crease</h2>
@@ -115,15 +114,15 @@ export function FeatureBand() {
             Three moves. Search, paste, scan. Nothing else sits between you and the role.
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           {features.map((feature) => (
             <Card key={feature.title} className="h-full">
-              <CardHeader>
-                <feature.icon className="size-8 text-coral" strokeWidth={1.5} />
-                <CardTitle className="text-body font-bold text-ink">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-body-sm text-steel">{feature.body}</p>
+              <CardContent className="flex h-full gap-4">
+                <feature.icon className="size-6 shrink-0 text-coral" strokeWidth={1.5} />
+                <div className="flex flex-col gap-2">
+                  <CardTitle className="text-body font-bold text-ink">{feature.title}</CardTitle>
+                  <p className="text-body-sm text-steel">{feature.body}</p>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -135,22 +134,19 @@ export function FeatureBand() {
 
 export function TestimonialBand() {
   return (
-    <section id="stories" className="bg-sage-paper/40 px-5 py-16">
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-8">
+    <section id="stories" className="bg-sage-paper/40 px-5 py-10">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-6">
         <h2 className="text-heading font-bold text-ink">From the fold</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
           {quotes.map((item) => (
-            <Card key={item.name} className="h-full">
-              <CardContent className="flex h-full flex-col gap-4">
-                <FoldHorizontal className="size-6 text-coral" strokeWidth={1.5} />
-                <p className="text-body-sm text-ink">{item.quote}</p>
-                <p className="mt-auto text-caption font-semibold text-steel">
-                  {item.name}
-                  <span className="text-fold"> · </span>
-                  {item.role}
-                </p>
-              </CardContent>
-            </Card>
+            <figure key={item.name} className="flex flex-col gap-3 border-t-2 border-coral pt-4">
+              <blockquote className="text-body-sm text-ink">{item.quote}</blockquote>
+              <figcaption className="text-caption font-semibold text-steel">
+                {item.name}
+                <span className="text-fold"> · </span>
+                {item.role}
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>
@@ -168,7 +164,7 @@ export function PricingBand({
   onDemo: () => void;
 }) {
   return (
-    <section id="pricing" className="px-5 py-16">
+    <section id="pricing" className="px-5 py-12">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-8">
         <div className="max-w-xl">
           <h2 className="text-heading font-bold text-ink">Pricing, folded flat</h2>
@@ -176,7 +172,7 @@ export function PricingBand({
             Start free. Unlock Pro in demo if you want to test the paid path without a card.
           </p>
         </div>
-        <div className="grid items-stretch gap-4 lg:grid-cols-3">
+        <div className="grid items-stretch gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle className="text-body font-bold">Scout</CardTitle>
@@ -320,7 +316,7 @@ export function PaperFooter() {
         </div>
       </div>
       <p className="mx-auto mt-10 max-w-[1200px] text-caption text-steel">
-        Copyright 2026 GhostScout. Jobs link back to Remotive, Remote OK, Arbeitnow, and We Work Remotely.
+        Copyright 2026 GhostScout. Jobs link back to LinkedIn, Himalayas, Jobicy, Remotive, Remote OK, Arbeitnow, and We Work Remotely.
       </p>
     </footer>
   );

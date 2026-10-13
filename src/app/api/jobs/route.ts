@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { loadCatalog, rankJobs } from "@/lib/search-jobs";
+import { searchJobs } from "@/lib/search-jobs";
 
 export async function GET(request: Request) {
   await connection();
@@ -15,8 +15,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const catalog = await loadCatalog();
-    const jobs = rankJobs(catalog, q, location);
+    const jobs = await searchJobs(q, location);
     return Response.json(
       { jobs, source: "live" },
       { headers: { "Cache-Control": "no-store" } },

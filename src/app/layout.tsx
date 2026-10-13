@@ -13,7 +13,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "GhostScout — Fold the search. Keep the resume.",
+  title: "GhostScout - Fold the search. Keep the resume.",
   description:
     "Search remote jobs, paste your resume, and score the match on an open model you can run yourself.",
   openGraph: {

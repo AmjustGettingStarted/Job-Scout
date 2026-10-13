@@ -33,7 +33,7 @@ export default function Page() {
   const motionVars = useMotionVariants();
   const searchParams = useSearchParams();
   const [keyword, setKeyword] = useState("react");
-  const [location, setLocation] = useState("remote");
+  const [location, setLocation] = useState("india");
   const [mode, setMode] = useState<AiMode>("private");
   const [resume, setResume] = useState("");
   const [jobs, setJobs] = useState<Job[]>([]);

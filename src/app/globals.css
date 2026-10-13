@@ -249,6 +249,39 @@
     );
     background-size: 28px 28px;
   }
+
+  .country-scroll::-webkit-scrollbar {
+    width: 14px;
+  }
+
+  .country-scroll::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
+  .country-scroll::-webkit-scrollbar-track {
+    background: var(--color-paper);
+    border-left: 2px solid var(--color-fold);
+  }
+
+  .country-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-coral);
+    border: 2px solid var(--color-paper);
+    border-radius: var(--radius-buttons);
+    box-shadow: 2px 2px 0 var(--color-fold);
+  }
+
+  .country-scroll::-webkit-scrollbar-thumb:hover {
+    background: #e25555;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    .country-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-coral) var(--color-paper);
+    }
+  }
 }
 
 @utility text-gradient-plasma {
@@ -307,7 +340,8 @@
 
 @utility crease-card-hover {
   &:hover {
-    transform: perspective(var(--fold-perspective)) rotateY(2deg) translateY(-4px);
+    transform: translateY(-4px);
+    filter: drop-shadow(6px 8px 0 var(--fold-shadow-origami));
   }
 }
 
